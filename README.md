@@ -1,6 +1,9 @@
 # Coursera_regression_models
 
-As in the coursera course: 
+The goal of the course is use regression analysis as tool to understand your data.
+To achieve this objective, the course gives the tools to understand regressions, from the simple and practical linear model, to the glm, focussing on binary outcomes (logit) and count data (poisson).
+
+This analysis is part of the optional quiz, to understand how students understand and work with data. 
 
 A codebook for the dataset is given below:
 
