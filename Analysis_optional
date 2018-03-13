@@ -1,0 +1,94 @@
+install.packages("devtools")
+devtools::install_github("jhudsl/collegeIncome")
+library(collegeIncome)
+data(college)
+
+devtools::install_github("jhudsl/matahari")
+library(matahari)
+
+dance_start(value = FALSE, contents = FALSE)
+
+library(ggplot2)
+library(dplyr)
+library(GGally)
+
+dim(college); str(college)
+
+#How's the distribution of fulltime employment? Is there a gender difference?
+g <- ggplot(aes(perc_employed_fulltime_yearround, major_category, colour=perc_women), data=college)
+g <- g + geom_point(size=2) + labs(x="Percentage Employed Fulltime Yearround", y="Major Category")
+g <- g + scale_colour_gradient(name="Percentage of Women")
+#Is there a difference in the median of earnings?
+h <- ggplot(aes(median, major_category, colour=perc_women), data=college)
+h <- h + geom_point(size=2) + labs(x="Median earnings of full-time, year-round workers", y="Major Category") + scale_colour_gradient(name="Percentage of Women")
+ggmatrix(list(g, h), ncol=2, nrow=1, legend=grab_legend(g), xAxisLabels = c("Percentage Employed Fulltime Yearround","Median earnings of full-time, year-round workers" ))
+
+#Looking median, 25th and 75th quintile of earnings
+p25th <- data.frame(Earnings = college$p25th, Major_category = college$major_category, Major = college$major, Value="25th Quantile")
+median <- data.frame(Earnings = college$median, Major_category = college$major_category, Major = college$major, Value="Median")
+p75th <- data.frame(Earnings = college$p75th, Major_category = college$major_category, Major = college$major, Value="75th Quantile")
+earnings <- rbind(p25th, median, p75th)
+m <- ggplot(aes(Earnings, Major_category), data=earnings)
+m <- m + geom_point(aes(colour=Value)) + labs(x="Earnings of full-time, year-round workers", y="Major Category")
+m #The higher earnings are Engineering, Education, Business and Biology & Life Science
+
+#Investigating these majors further
+big4 <- filter(earnings, Major_category=="Engineering"| Major_category=="Education"| Major_category=="Business" | Major_category=="Biology & Life Science")
+l <- ggplot(aes(Earnings, Major), data = big4) + facet_grid(Major_category ~ .)
+l <- l + geom_point(aes(colour = Value)) + labs(x="Earnings of full-time, year-round workers", y=NULL)
+l
+
+#Looking at all the correlations
+all <- ggpairs(data = select(college, c(major_category, total, perc_women, median, perc_employed_fulltime:perc_low_wage_jobs)), cardinality_threshold = 17)
+all
+
+#Regressions
+fit <- lm(median ~ factor(major_category), data=college)
+summary(fit) ##The major categories weren't significant
+fit2 <- lm(median ~ factor(major_category) + perc_women, data = college)
+anova(fit, fit2) #Still not able to reject the null hypothesis, thus the regressors are not significant
+fit3 <- lm(median ~ perc_women, data = college)
+anova(fit3, fit2)
+fit4 <- lm(median ~ factor(major_category)*perc_women, data=college)
+summary(fit4) #Now there are some very significant coef
+anova(fit, fit4) #The inclusion of the interation between the percentage of woman and the major category
+anova(fit3, fit4) #was able to reject the null hypothesis, thus indicating the significance
+#Still, the R squared is low, even though the large number of variables, as shown by the adjusted R-squared
+
+fit5 <- lm(p25th ~ factor(major_category)*perc_women, data=college)
+summary(fit5)
+#The results for the model using the 25th quintile don't hold as well as the model for the median earnings
+#The R^2 is lower, and it's unable to reject the null hypothesis for the F-statistic 
+fit6 <- lm(p75th ~ factor(major_category)*perc_women, data=college)
+summary(fit6)
+#The model for the 75th quintile has a smaller adjusted p-value
+
+##An interesting conclusion is that for 3 out of the 4 major categories investigated further, 
+#Education, Engineering, Business and Biology & Life Science, because of the high earnings,
+#their interations with the percentage of women in these areas were significant and their coefficients
+#were negative. Looking at the graphic "h" it's possible to visualize this effect.
+#Even though this major categories appear to receive higher earnings, the greater the female participation in the area,
+#the lower their gains.
+
+#Looking at the residuals
+par(mfrow=c(1,2))
+plot(resid(fit), pch=16, col="deepskyblue4")
+title("Residuals from median ~ major category")
+abline(h=0, col="brown3", lwd=2)
+plot(resid(fit4), pch=16, col="deepskyblue4")
+abline(h=0, col="brown3", lwd=2)
+title("Residuals from median ~ major category * percetage of women")
+#The residuals for the model with the interation are closer to zero, and appear random enough.
+
+
+fit7 <- lm(median ~ major_category*perc_women + perc_college_jobs + perc_employed + perc_low_wage_jobs, data = college)
+summary(fit7)
+#Including other variables doesn't bring much to the model, their coefficients are not significant and the R^2 (and adjusted R^2)
+# and the F-statistic are slightly worse.
+
+##The best model was the forth, with the interaction between the percentage of women and the major category
+#Some interesting coefficients are significant and the model and its F-statistic is able to reject the null hypothesis that 
+#all the coefficients are zero.
+
+
+dance_save("~/college_major_analysis.rds")
