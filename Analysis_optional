@@ -88,7 +88,8 @@ summary(fit7)
 
 ##The best model was the forth, with the interaction between the percentage of women and the major category
 #Some interesting coefficients are significant and the model and its F-statistic is able to reject the null hypothesis that 
-#all the coefficients are zero.
+#all the coefficients are zero. But still, the effect is minimal, and the model doesn't explain much of the outcome.
+#The first model, with only the major categories as regressors indicate that it does not affect the earnings.
 
 
 dance_save("~/college_major_analysis.rds")
